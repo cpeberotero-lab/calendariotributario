@@ -3,148 +3,182 @@ import pandas as pd
 from datetime import datetime
 
 # ==========================================
-# 1. BASE DE DATOS DE VENCIMIENTOS (Extracto del PDF)
+# 1. BASE DE DATOS UNIFICADA
 # ==========================================
-# Aquí he digitalizado los patrones encontrados en el PDF adjunto.
-# La lógica es: NIT termina en X -> Vence el día Y.
+# Estructura: 
+# - 'criterio': '1D' (Último dígito) o '2D' (Últimos dos dígitos)
+# - 'digito': El número (0-9 para 1D, 00-99 para 2D)
+# - 'categoria': A quién le aplica (GC = Grandes Contribuyentes, PJ = Personas Jurídicas, PN = Personas Naturales, General = Todos)
 
 DB_CALENDARIO = []
 
-def agregar_vencimiento(impuesto, periodo, fecha_base_inicio, dias_habiles_consecutivos):
+def agregar_vencimiento_1d(impuesto, categoria, periodo, fecha_base, dias_consecutivos=True):
     """
-    Función auxiliar para generar fechas masivamente siguiendo el patrón de la DIAN:
-    Los vencimientos suelen arrancar en una fecha y seguir días hábiles sucesivos
-    para los dígitos 1, 2, 3, 4, 5, 6, 7, 8, 9, 0.
+    Genera fechas para impuestos basados en 1 solo dígito (IVA, Rete, Renta PJ/GC)
+    Patrón típico DIAN: 1, 2, 3, 4, 5, 6, 7, 8, 9, 0
     """
-    # Esta lista simula los días exactos extraídos del PDF para el patrón estándar
-    # Ejemplo basado en Retefuente Enero (Vence Febrero) : 
-    # Dígitos 1-0 corresponden a días 10, 11, 12, 13, 16, 17, 18, 19, 20, 24.
+    # Fechas simuladas basadas en el PDF (Simplificado para el demo)
+    # En producción, aquí irían las fechas exactas del calendario.
+    fechas_ejemplo = pd.date_range(start=fecha_base, periods=10, freq='B') # 'B' son días hábiles aprox
     
-    digitos = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
+    digitos_orden = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
     
-    # Mapeo manual de las fechas extraídas del PDF para los ejemplos:
-    
-    if periodo == "Enero (Decl. Feb)": # Fuente: PDF Pág 1 
-        fechas = ["2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13", "2026-02-16", 
-                  "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-24"]
-                  
-    elif periodo == "Febrero (Decl. Mar)": # Fuente: PDF Pág 1 
-        fechas = ["2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-16", 
-                  "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-24"]
-                  
-    elif periodo == "Bimestre 1 (Decl. Mar)": # IVA - Fuente: PDF Pág 1 
-        fechas = ["2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-16", 
-                  "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-24"]
-
-    elif periodo == "Cuota 1 (Mayo)": # Renta PJ - Fuente: PDF Pág 1 
-        # Dígitos 1 al 0
-        fechas = ["2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", 
-                  "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22"]
-    else:
-        fechas = []
-
-    for d, f in zip(digitos, fechas):
+    for d, f in zip(digitos_orden, fechas_ejemplo):
         DB_CALENDARIO.append({
             "Impuesto": impuesto,
+            "Categoria": categoria,
             "Periodo": periodo,
-            "Ultimo_Digito": d,
-            "Fecha_Limite": f
+            "Criterio": "1D",
+            "Valor_Criterio": str(d), # Guardamos como string para comparar fácil
+            "Fecha_Limite": f.strftime("%Y-%m-%d")
         })
 
-# --- CARGA DE DATOS ---
-# Retención en la fuente 
-agregar_vencimiento("Retención en la Fuente", "Enero (Decl. Feb)", "", [])
-agregar_vencimiento("Retención en la Fuente", "Febrero (Decl. Mar)", "", [])
+def agregar_vencimiento_2d_pn(impuesto, categoria, periodo, fecha_base):
+    """
+    Genera fechas para Renta Personas Naturales (Basado en 2 últimos dígitos) 
+    Patrón: 01-02, 03-04, ... 99-00
+    """
+    # Simulamos el calendario de Ago-Oct para PN
+    fechas_ejemplo = pd.date_range(start=fecha_base, periods=50, freq='B') 
+    
+    contador_fecha = 0
+    for i in range(1, 101): # Del 01 al 100 (donde 100 representa 00)
+        # Formatear el dígito a 2 caracteres (ej. '01', '09', '99', '00')
+        val_str = f"{i:02d}" if i < 100 else "00"
+        
+        # Cada fecha aplica para 2 números consecutivos (ej. 01 y 02 el mismo día)
+        fecha = fechas_ejemplo[contador_fecha // 2]
+        
+        DB_CALENDARIO.append({
+            "Impuesto": impuesto,
+            "Categoria": categoria,
+            "Periodo": periodo,
+            "Criterio": "2D",
+            "Valor_Criterio": val_str,
+            "Fecha_Limite": fecha.strftime("%Y-%m-%d")
+        })
+        contador_fecha += 1
 
-# IVA Bimestral 
-agregar_vencimiento("IVA Bimestral", "Bimestre 1 (Decl. Mar)", "", [])
+# --- CARGA DE DATOS DEMO ---
 
-# Renta Personas Jurídicas 
-agregar_vencimiento("Renta Personas Jurídicas", "Cuota 1 (Mayo)", "", [])
+# 1. Renta Grandes Contribuyentes (Usa 1 dígito - Ver PDF source: 10)
+agregar_vencimiento_1d("Renta - Grandes Contribuyentes", "Solo Grandes Contribuyentes", "Pago 2a Cuota", "2026-04-10")
+
+# 2. Renta Personas Jurídicas (Usa 1 dígito - Ver PDF source: 20)
+agregar_vencimiento_1d("Renta - Personas Jurídicas", "Personas Jurídicas", "Decl. y Pago 1a Cuota", "2026-05-11")
+
+# 3. IVA Bimestral (Usa 1 dígito - General)
+agregar_vencimiento_1d("IVA Bimestral", "Régimen Común / GC", "Periodo Ene-Feb", "2026-03-10")
+
+# 4. Retención en la Fuente (Usa 1 dígito - General)
+agregar_vencimiento_1d("Retención en la Fuente", "Agentes Retenedores", "Mensual - Enero", "2026-02-10")
+
+# 5. Renta Personas Naturales (Usa 2 dígitos - Ver PDF source: 35)
+# Esto demostrará la lógica inteligente cuando metas un NIT largo.
+agregar_vencimiento_2d_pn("Renta - Personas Naturales", "Personas Naturales", "Declaración de Renta", "2026-08-11")
+
 
 # ==========================================
-# 2. INTERFAZ Y LÓGICA (STREAMLIT)
+# 2. INTERFAZ MEJORADA
 # ==========================================
 
-st.set_page_config(page_title="Calendario Tributario 2026", layout="centered", page_icon="📅")
+st.set_page_config(page_title="Calendario Tributario 2026", layout="centered", page_icon="🇨🇴")
 
-# Estilos CSS para simular la estética DIAN/Corporativa
 st.markdown("""
     <style>
-    .stApp { background-color: #f5f7f9; }
+    .stApp { background-color: #f0f2f6; }
     .card {
         background-color: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         margin-bottom: 10px;
-        border-left: 5px solid #0056b3;
+        border-left: 6px solid #ccc;
     }
-    .big-font { font-size: 18px !important; font-weight: bold; color: #333; }
-    .date-font { font-size: 16px; color: #0056b3; font-weight: bold; }
+    .card-GC { border-left-color: #6f42c1; } /* Morado para Grandes Contribuyentes */
+    .card-PJ { border-left-color: #0d6efd; } /* Azul para Personas Jurídicas */
+    .card-PN { border-left-color: #198754; } /* Verde para Personas Naturales */
+    
+    .badge {
+        display: inline-block;
+        padding: 0.25em 0.4em;
+        font-size: 75%;
+        font-weight: 700;
+        color: #fff;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.25rem;
+    }
+    .bg-GC { background-color: #6f42c1; }
+    .bg-PJ { background-color: #0d6efd; }
+    .bg-PN { background-color: #198754; }
+    .bg-GEN { background-color: #6c757d; }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🇨🇴 Calendario Tributario Inteligente 2026")
-st.markdown("Digita tu NIT para conocer tus próximas obligaciones basadas en el **Calendario DIAN 2026**.")
+st.title("🔎 Agenda Tributaria Unificada")
+st.markdown("Ingresa el NIT completo. El sistema detectará automáticamente todas las posibles obligaciones según el último o los dos últimos dígitos.")
 
-# --- INPUT DEL USUARIO ---
-col1, col2 = st.columns([2, 1])
-with col1:
-    nit = st.text_input("Ingrese su NIT (Sin dígito de verificación):", max_chars=12, placeholder="Ej: 900123456")
-with col2:
-    tipo_usuario = st.selectbox("Tipo de Contribuyente", ["Persona Jurídica", "Persona Natural"])
+# Solo un input
+nit_input = st.text_input("Ingrese NIT (sin dígito de verificación):", placeholder="Ej: 800123456")
 
-# --- PROCESAMIENTO ---
-if nit and nit.isdigit():
-    digito = int(nit[-1])
+if nit_input and nit_input.isdigit():
+    # --- LÓGICA DE EXTRACCIÓN ---
+    last_1 = nit_input[-1]       # Último dígito (Ej. 6)
+    last_2 = nit_input[-2:]      # Últimos dos (Ej. 56)
+    
+    st.info(f"Analizando para NIT terminado en **{last_1}** (Regla general) y **{last_2}** (Regla Personas Naturales).")
+    
+    # --- FILTRADO INTELIGENTE ---
+    df = pd.DataFrame(DB_CALENDARIO)
+    
+    # Buscamos coincidencias: 
+    # 1. Que el criterio sea '1D' y coincida con last_1
+    # 2. O que el criterio sea '2D' y coincida con last_2
+    
+    mask_1d = (df['Criterio'] == '1D') & (df['Valor_Criterio'] == last_1)
+    mask_2d = (df['Criterio'] == '2D') & (df['Valor_Criterio'] == last_2)
+    
+    resultados = df[mask_1d | mask_2d].copy()
+    
+    # Ordenar por fecha
+    resultados['Fecha_DT'] = pd.to_datetime(resultados['Fecha_Limite'])
+    resultados = resultados.sort_values(by='Fecha_DT')
     
     st.divider()
-    st.subheader(f"Obligaciones para NIT terminado en: {digito}")
     
-    # Filtrar Base de Datos
-    df = pd.DataFrame(DB_CALENDARIO)
-    mis_obligaciones = df[df['Ultimo_Digito'] == digito].copy()
-    
-    # Convertir a datetime para ordenar cronológicamente
-    mis_obligaciones['Fecha_DT'] = pd.to_datetime(mis_obligaciones['Fecha_Limite'])
-    mis_obligaciones = mis_obligaciones.sort_values(by='Fecha_DT')
-    
-    # Filtrar fechas pasadas (opcional, aquí mostramos todas las del 2026 cargadas)
-    # mis_obligaciones = mis_obligaciones[mis_obligaciones['Fecha_DT'] >= datetime.now()]
-
-    if not mis_obligaciones.empty:
-        for index, row in mis_obligaciones.iterrows():
+    if not resultados.empty:
+        for _, row in resultados.iterrows():
+            # Determinar estilo según categoría
+            css_class = "card"
+            badge_class = "bg-GEN"
+            if "Grandes" in row['Categoria']: 
+                css_class += " card-GC"
+                badge_class = "bg-GC"
+            elif "Jurídicas" in row['Categoria']: 
+                css_class += " card-PJ"
+                badge_class = "bg-PJ"
+            elif "Naturales" in row['Categoria']: 
+                css_class += " card-PN"
+                badge_class = "bg-PN"
             
-            # Calcular días restantes
-            hoy = datetime.now()
-            delta = row['Fecha_DT'] - hoy
-            dias_restantes = delta.days + 1
-            
-            # Definir color del estado
-            estado = "🟢 A tiempo"
-            if dias_restantes < 0:
-                estado = "🔴 Vencido"
-            elif dias_restantes <= 5:
-                estado = "🟠 Urgente"
-            
-            # Renderizar tarjeta
+            # HTML Card
             st.markdown(f"""
-            <div class="card">
-                <div class="big-font">{row['Impuesto']}</div>
-                <div>Periodo: {row['Periodo']}</div>
-                <hr style="margin: 5px 0;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div class="date-font">📅 Vence: {row['Fecha_Limite']}</div>
-                    <div style="background-color: #eee; padding: 5px 10px; border-radius: 5px;">
-                        {estado} ({dias_restantes} días)
-                    </div>
+            <div class="{css_class}">
+                <div style="display:flex; justify-content:space-between;">
+                    <span class="badge {badge_class}">{row['Categoria']}</span>
+                    <small>Regla: {row['Valor_Criterio']}</small>
                 </div>
+                <h4 style="margin: 5px 0;">{row['Impuesto']}</h4>
+                <div>Periodo: {row['Periodo']}</div>
+                <hr style="margin: 5px 0; border-top: 1px dashed #eee;">
+                <strong>📅 Fecha Límite: {row['Fecha_Limite']}</strong>
             </div>
             """, unsafe_allow_html=True)
             
     else:
-        st.info("No se encontraron obligaciones cargadas para este perfil en la versión demo.")
+        st.warning("No se encontraron fechas exactas en la base de datos demo para este NIT.")
 
-elif nit and not nit.isdigit():
-    st.error("El NIT debe contener solo números.")
+elif nit_input:
+    st.error("Por favor ingrese solo números.")
