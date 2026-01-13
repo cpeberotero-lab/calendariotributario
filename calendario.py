@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 # ==========================================
 st.set_page_config(page_title="Hub Tributario 2026", layout="wide", page_icon="🏛️")
 
-# Estilos CSS para mejorar la tablas
+# Estilos CSS
 st.markdown("""
 <style>
     [data-testid="stExpander"] {
@@ -59,30 +59,23 @@ def get_national_calendar(last_digit):
     calendar = []
     idx = {1:0, 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 9:8, 0:9}[int(last_digit)]
     
-    # --- Renta PJ (Fuente: PDF 1) ---
-    # Fechas base aproximadas para el dígito 1 extraídas del calendario
-    renta_rules = [
-        ("1ra Cuota", "2026-05-11"), 
-        ("2da Cuota", "2026-07-07")
-    ]
+    # Renta PJ
+    renta_rules = [("1ra Cuota", "2026-05-11"), ("2da Cuota", "2026-07-07")]
     for per, start in renta_rules:
         dates = get_business_days(start, 10)
         calendar.append({"Jurisdicción": "Nacional", "Impuesto": "Renta Personas Jurídicas", "Periodo": per, "Fecha": dates[idx]})
 
-    # --- IVA Bimestral (Fuente: PDF 1) ---
+    # IVA
     iva_rules = [
-        ("Bimestre 1 (Ene-Feb)", "2026-03-10"),
-        ("Bimestre 2 (Mar-Abr)", "2026-05-12"),
-        ("Bimestre 3 (May-Jun)", "2026-07-08"), # Ajuste festivos
-        ("Bimestre 4 (Jul-Ago)", "2026-09-08"),
-        ("Bimestre 5 (Sep-Oct)", "2026-11-10"),
-        ("Bimestre 6 (Nov-Dic)", "2027-01-13")
+        ("Bimestre 1 (Ene-Feb)", "2026-03-10"), ("Bimestre 2 (Mar-Abr)", "2026-05-12"),
+        ("Bimestre 3 (May-Jun)", "2026-07-08"), ("Bimestre 4 (Jul-Ago)", "2026-09-08"),
+        ("Bimestre 5 (Sep-Oct)", "2026-11-10"), ("Bimestre 6 (Nov-Dic)", "2027-01-13")
     ]
     for per, start in iva_rules:
         dates = get_business_days(start, 10)
         calendar.append({"Jurisdicción": "Nacional", "Impuesto": "IVA Bimestral", "Periodo": per, "Fecha": dates[idx]})
 
-    # --- Retefuente (Fuente: PDF 1) ---
+    # Retefuente
     rete_rules = [
         ("Enero", "2026-02-10"), ("Febrero", "2026-03-10"), ("Marzo", "2026-04-07"),
         ("Abril", "2026-05-11"), ("Mayo", "2026-06-09"), ("Junio", "2026-07-07"),
@@ -97,16 +90,14 @@ def get_national_calendar(last_digit):
 
 def get_atlantico_calendar():
     calendar = []
-    # (Fuente: Resolución 000476 Atlántico)
-    
-    # Impuesto Registro (Fechas fijas mensuales - Muestra 6 meses)
+    # Registro
     reg_fechas = [("Enero", "2026-02-16"), ("Febrero", "2026-03-16"), ("Marzo", "2026-04-15"),
                   ("Abril", "2026-05-15"), ("Mayo", "2026-06-16"), ("Junio", "2026-07-15"),
                   ("Julio", "2026-08-18"), ("Agosto", "2026-09-15"), ("Septiembre", "2026-10-15")]
     for per, f in reg_fechas:
         calendar.append({"Jurisdicción": "Atlántico", "Impuesto": "Impuesto de Registro", "Periodo": per, "Fecha": pd.to_datetime(f)})
 
-    # Tasa Seguridad (Fechas fijas mensuales - Muestra 6 meses)
+    # Tasa Seguridad
     seg_fechas = [("Enero", "2026-02-18"), ("Febrero", "2026-03-18"), ("Marzo", "2026-04-20"),
                   ("Abril", "2026-05-19"), ("Mayo", "2026-06-18"), ("Junio", "2026-07-21")]
     for per, f in seg_fechas:
@@ -114,39 +105,87 @@ def get_atlantico_calendar():
 
     # Estampillas
     calendar.append({"Jurisdicción": "Atlántico", "Impuesto": "Estampillas", "Periodo": "Anual 2026", "Fecha": pd.to_datetime("2027-01-31")})
-    
     return calendar
 
 def get_barranquilla_calendar(last_digit):
     calendar = []
     d = int(last_digit)
     
-    # 1. ICA Anual (Fuente: Res DSH 003)
+    # ICA
     ica_dates = {0: "2027-02-15", 9: "2027-02-16", 8: "2027-02-17", 7: "2027-02-18",
                  6: "2027-02-19", 5: "2027-02-22", 4: "2027-02-23", 3: "2027-02-24", 2: "2027-02-25", 1: "2027-02-26"}
     calendar.append({"Jurisdicción": "Barranquilla", "Impuesto": "ICA (Industria y Comercio)", "Periodo": "Anual 2026", "Fecha": pd.to_datetime(ica_dates[d])})
 
-    # 2. Predial
+    # Predial
     calendar.append({"Jurisdicción": "Barranquilla", "Impuesto": "Predial Unificado", "Periodo": "Desc. 10%", "Fecha": pd.to_datetime("2026-03-27")})
     calendar.append({"Jurisdicción": "Barranquilla", "Impuesto": "Predial Unificado", "Periodo": "Desc. 5%", "Fecha": pd.to_datetime("2026-05-29")})
     calendar.append({"Jurisdicción": "Barranquilla", "Impuesto": "Predial Unificado", "Periodo": "Sin Descuento", "Fecha": pd.to_datetime("2026-06-30")})
 
-    # 3. Rete-ICA Bimestral (Logica simplificada de ejemplo para demo)
-    bimestres = [
-        ("Ene-Feb", "2026-03-13"), ("Mar-Abr", "2026-05-15"), 
-        ("May-Jun", "2026-07-17"), ("Jul-Ago", "2026-09-17"),
-        ("Sep-Oct", "2026-11-17"), ("Nov-Dic", "2027-01-18")
-    ]
-    # Ajuste simple de días según dígito (simulación de la tabla compleja del PDF)
+    # Rete-ICA (Simulado)
+    bimestres = [("Ene-Feb", "2026-03-13"), ("Mar-Abr", "2026-05-15"), ("May-Jun", "2026-07-17"), ("Jul-Ago", "2026-09-17"), ("Sep-Oct", "2026-11-17"), ("Nov-Dic", "2027-01-18")]
     offset = 0 if d in [0,9] else (2 if d in [8,7] else 4)
-    
     for per, base in bimestres:
-        f_base = pd.to_datetime(base)
-        f_real = f_base + timedelta(days=offset) 
-        # Ajuste fin de semana simple
+        f_real = pd.to_datetime(base) + timedelta(days=offset)
         if f_real.weekday() >= 5: f_real += timedelta(days=2)
-        
         calendar.append({"Jurisdicción": "Barranquilla", "Impuesto": "Rete-ICA", "Periodo": per, "Fecha": f_real})
+
+    return calendar
+
+def get_candelaria_calendar(last_digit):
+    calendar = []
+    d = int(last_digit)
+    
+    # --- 1. Predial Unificado (Fuente: Art 3) ---
+    # Descuentos escalonados
+    calendar.append({"Jurisdicción": "Candelaria", "Impuesto": "Predial Unificado", "Periodo": "Desc. 20% (Pronto Pago)", "Fecha": pd.to_datetime("2026-03-31")})
+    calendar.append({"Jurisdicción": "Candelaria", "Impuesto": "Predial Unificado", "Periodo": "Desc. 15%", "Fecha": pd.to_datetime("2026-05-31")})
+    calendar.append({"Jurisdicción": "Candelaria", "Impuesto": "Predial Unificado", "Periodo": "Desc. 10%", "Fecha": pd.to_datetime("2026-06-30")})
+    calendar.append({"Jurisdicción": "Candelaria", "Impuesto": "Predial Unificado", "Periodo": "Límite Sin Intereses", "Fecha": pd.to_datetime("2026-06-30")})
+
+    # --- 2. ICA Anual (Fuente: Art 2) ---
+    # Plazo hasta 27 Febrero 2026 para vigencia 2025
+    calendar.append({"Jurisdicción": "Candelaria", "Impuesto": "ICA Anual (Vigencia 2025)", "Periodo": "Declaración y Pago", "Fecha": pd.to_datetime("2026-02-27")})
+
+    # --- 3. Rete-ICA Bimestral (Fuente: Tabla Art 2) ---
+    # Matriz exacta de fechas según el último dígito
+    # Indices: 0=Ene-Feb, 1=Mar-Abr, ...
+    fechas_rete = {
+        0: ["2026-03-16", "2026-05-15", "2026-07-13", "2026-09-14", "2026-11-17", "2027-01-12"],
+        1: ["2026-03-17", "2026-05-19", "2026-07-14", "2026-09-15", "2026-11-18", "2027-01-13"],
+        2: ["2026-03-18", "2026-05-20", "2026-07-15", "2026-09-16", "2026-11-19", "2027-01-14"],
+        3: ["2026-03-19", "2026-05-21", "2026-07-16", "2026-09-17", "2026-11-20", "2027-01-15"],
+        4: ["2026-03-20", "2026-05-22", "2026-07-17", "2026-09-18", "2026-11-23", "2027-01-18"],
+        5: ["2026-03-24", "2026-05-25", "2026-07-21", "2026-09-21", "2026-11-24", "2027-01-19"],
+        6: ["2026-03-25", "2026-05-26", "2026-07-22", "2026-09-22", "2026-11-25", "2027-01-20"],
+        7: ["2026-03-26", "2026-05-27", "2026-07-23", "2026-09-23", "2026-11-26", "2027-01-21"],
+        8: ["2026-03-27", "2026-05-28", "2026-07-24", "2026-09-24", "2026-11-27", "2027-01-22"],
+        9: ["2026-03-30", "2026-05-29", "2026-07-27", "2026-09-25", "2026-11-30", "2027-01-25"],
+    }
+    bimestres = ["Ene-Feb", "Mar-Abr", "May-Jun", "Jul-Ago", "Sep-Oct", "Nov-Dic"]
+    
+    mis_fechas = fechas_rete[d]
+    for i, fecha in enumerate(mis_fechas):
+        calendar.append({
+            "Jurisdicción": "Candelaria", 
+            "Impuesto": "Rete-ICA Bimestral", 
+            "Periodo": bimestres[i], 
+            "Fecha": pd.to_datetime(fecha)
+        })
+
+    # --- 4. ICA Preferencial (Fuente: Tabla D) ---
+    # Fechas fijas para el sistema preferencial
+    pref_dates = [
+        ("Ene-Feb", "2026-03-20"), ("Mar-Abr", "2026-05-29"), 
+        ("May-Jun", "2026-07-24"), ("Jul-Ago", "2026-09-25"),
+        ("Sep-Oct", "2026-11-27"), ("Nov-Dic", "2027-01-22")
+    ]
+    for per, f in pref_dates:
+        calendar.append({
+            "Jurisdicción": "Candelaria", 
+            "Impuesto": "ICA Sistema Preferencial", 
+            "Periodo": per, 
+            "Fecha": pd.to_datetime(f)
+        })
 
     return calendar
 
@@ -155,7 +194,8 @@ def get_barranquilla_calendar(last_digit):
 # ==========================================
 
 st.title("🗓️ Hub Tributario 2026: Vista Jerárquica")
-st.write("Consulta organizada por **Jurisdicción > Impuesto > Fechas**.")
+st.markdown("Consulta organizada por **Jurisdicción > Impuesto > Fechas**.")
+st.caption("Incluye normatividad de: Nación, Dept. Atlántico, Barranquilla y **Candelaria**.")
 
 col_in, col_check = st.columns([1, 2])
 with col_in:
@@ -168,14 +208,20 @@ if nit and nit.isdigit():
     data_nac = get_national_calendar(last_digit)
     data_atl = get_atlantico_calendar()
     data_bar = get_barranquilla_calendar(last_digit)
+    data_can = get_candelaria_calendar(last_digit) # ¡Nuevo!
     
-    full_data = data_nac + data_atl + data_bar
+    full_data = data_nac + data_atl + data_bar + data_can
     df_master = pd.DataFrame(full_data)
     
-    # 2. Estructura visual: PESTAÑAS (Jurisdicción)
-    tab_nac, tab_atl, tab_bar = st.tabs(["🇨🇴 Nacional (DIAN)", "🌊 Atlántico (Gobernación)", "🏙️ Barranquilla (Distrito)"])
+    # 2. Estructura visual: PESTAÑAS (Ahora son 4)
+    tab_nac, tab_atl, tab_bar, tab_can = st.tabs([
+        "🇨🇴 Nacional", 
+        "🌊 Atlántico", 
+        "🏙️ Barranquilla", 
+        "🏘️ Candelaria"
+    ])
     
-    # Función auxiliar para renderizar contenido de cada pestaña
+    # Función de renderizado (Reutilizable)
     def render_jurisdiction_tab(df, jurisdiction_name):
         subset = df[df['Jurisdicción'].str.contains(jurisdiction_name, case=False)]
         
@@ -183,55 +229,38 @@ if nit and nit.isdigit():
             st.info("No hay datos cargados para esta jurisdicción.")
             return
 
-        # Agrupar por Impuesto (Nivel 2)
         unique_taxes = subset['Impuesto'].unique()
         
         for tax in unique_taxes:
-            # Filtrar y ordenar por fecha (Nivel 3)
             df_tax = subset[subset['Impuesto'] == tax].copy()
             df_tax = df_tax.sort_values(by="Fecha")
             
-            # Formatear fecha para mostrar
             df_tax['Fecha Vencimiento'] = df_tax['Fecha'].dt.strftime('%Y-%m-%d')
             df_tax['Día Semana'] = df_tax['Fecha'].dt.day_name().replace(
                 'Monday', 'Lunes').replace('Tuesday', 'Martes').replace('Wednesday', 'Miércoles').replace(
                 'Thursday', 'Jueves').replace('Friday', 'Viernes').replace('Saturday', 'Sábado').replace('Sunday', 'Domingo')
             
-            # Calcular estado
             today = datetime.now()
             df_tax['Estado'] = df_tax['Fecha'].apply(
                 lambda x: "🔴 Vencido" if x < today else ("🟠 Próximo" if (x - today).days < 30 else "🟢 A tiempo")
             )
 
-            # Mostrar en Expander
             with st.expander(f"📌 {tax}", expanded=True):
-                # Usar dataframe interactivo (No lista)
                 st.dataframe(
                     df_tax[['Periodo', 'Fecha Vencimiento', 'Día Semana', 'Estado']],
                     use_container_width=True,
                     hide_index=True,
                     column_config={
-                        "Estado": st.column_config.TextColumn(
-                            "Estado",
-                            help="Estado del vencimiento",
-                            width="small"
-                        ),
-                        "Fecha Vencimiento": st.column_config.DateColumn(
-                            "Fecha Límite",
-                            format="DD/MM/YYYY"
-                        )
+                        "Estado": st.column_config.TextColumn("Estado", width="small"),
+                        "Fecha Vencimiento": st.column_config.DateColumn("Fecha Límite", format="DD/MM/YYYY")
                     }
                 )
 
     # 3. Renderizar cada pestaña
-    with tab_nac:
-        render_jurisdiction_tab(df_master, "Nacional")
-        
-    with tab_atl:
-        render_jurisdiction_tab(df_master, "Atlántico")
-        
-    with tab_bar:
-        render_jurisdiction_tab(df_master, "Barranquilla")
+    with tab_nac: render_jurisdiction_tab(df_master, "Nacional")
+    with tab_atl: render_jurisdiction_tab(df_master, "Atlántico")
+    with tab_bar: render_jurisdiction_tab(df_master, "Barranquilla")
+    with tab_can: render_jurisdiction_tab(df_master, "Candelaria")
 
 elif nit:
     st.error("El NIT debe ser numérico.")
