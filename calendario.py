@@ -1,0 +1,83 @@
+import streamlit as st
+import pandas as pd
+from datetime import datetime
+
+# --- 1. CONFIGURACIÓN DE LA PÁGINA ---
+st.set_page_config(page_title="Calendario Tributario 2026", layout="centered")
+
+st.title("📅 Buscador de Vencimientos DIAN 2026")
+st.markdown("Ingresa el NIT de tu empresa para ver tus obligaciones tributarias.")
+
+# --- 2. BASE DE DATOS (SIMULADA BASADA EN EL PDF) ---
+# En una app real, esto sería un archivo JSON o una base de datos SQL completa.
+# Aquí he transcrito algunos ejemplos basados en el documento adjunto.
+
+data_impuestos = [
+    # Ejemplo Renta Personas Jurídicas (Basado en source: 17, 19)
+    {"impuesto": "Renta Personas Jurídicas - 1ra Cuota", "digito": 1, "fecha": "2026-05-11"},
+    {"impuesto": "Renta Personas Jurídicas - 1ra Cuota", "digito": 2, "fecha": "2026-05-12"},
+    {"impuesto": "Renta Personas Jurídicas - 1ra Cuota", "digito": 3, "fecha": "2026-05-13"},
+    
+    # Ejemplo IVA Bimestral (Basado en source: 45, 52)
+    {"impuesto": "IVA Bimestral - Ene/Feb", "digito": 1, "fecha": "2026-03-10"},
+    {"impuesto": "IVA Bimestral - Ene/Feb", "digito": 2, "fecha": "2026-03-11"},
+    
+    # Ejemplo Retefuente (Basado en source: 73, 74)
+    {"impuesto": "Retención en la Fuente - Enero", "digito": 1, "fecha": "2026-02-10"},
+    {"impuesto": "Retención en la Fuente - Enero", "digito": 2, "fecha": "2026-02-11"},
+    
+    # ... Se deben llenar el resto de fechas del PDF ...
+]
+
+df = pd.DataFrame(data_impuestos)
+
+# --- 3. INTERFAZ DE USUARIO ---
+
+col1, col2 = st.columns([3, 1])
+with col1:
+    nit_input = st.text_input("Número de NIT (Sin dígito de verificación)", max_chars=15)
+with col2:
+    tipo_persona = st.selectbox("Tipo", ["Jurídica", "Natural", "Gran Contribuyente"])
+
+if st.button("Buscar Vencimientos"):
+    if nit_input and nit_input.isdigit():
+        
+        # Lógica para extraer dígito
+        ultimo_digito = int(nit_input[-1])
+        
+        # Filtrar el DataFrame
+        resultados = df[df['digito'] == ultimo_digito].copy()
+        
+        # Ordenar por fecha
+        resultados['fecha_dt'] = pd.to_datetime(resultados['fecha'])
+        resultados = resultados.sort_values(by='fecha_dt')
+        
+        # --- 4. VISUALIZACIÓN ---
+        st.divider()
+        st.subheader(f"Vencimientos para NIT terminado en {ultimo_digito}")
+        
+        if not resultados.empty:
+            # Opción A: Tabla simple
+            st.dataframe(resultados[['fecha', 'impuesto']].style.highlight_max(axis=0), use_container_width=True)
+            
+            # Opción B: Formato Tarjeta (Más amigable)
+            for index, row in resultados.iterrows():
+                with st.expander(f"{row['fecha']} - {row['impuesto']}"):
+                    st.write(f"**Obligación:** {row['impuesto']}")
+                    st.write(f"**Fecha Límite:** {row['fecha']}")
+                    # Aquí podrías agregar lógica de semáforo (Verde: falta mucho, Rojo: urgente)
+                    dias_restantes = (row['fecha_dt'] - datetime.now()).days
+                    if dias_restantes < 0:
+                        st.error(f"Vencido hace {abs(dias_restantes)} días")
+                    elif dias_restantes < 5:
+                        st.warning(f"¡Vence en {dias_restantes} días!")
+                    else:
+                        st.success(f"Faltan {dias_restantes} días")
+        else:
+            st.info("No hay datos cargados en el demo para este dígito aún.")
+            
+    else:
+        st.error("Por favor ingresa un NIT válido (solo números).")
+
+# --- Footer ---
+st.caption("Fuente: Calendario Tributario DIAN 2026 [cite: 2]")
